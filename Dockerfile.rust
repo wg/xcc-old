@@ -1,0 +1,35 @@
+FROM xcc:base
+
+WORKDIR /work
+
+ADD Makefile Makefile
+RUN make
+
+ENV PATH="/root/.cargo/bin:$PATH"
+RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --no-modify-path
+
+RUN rustup toolchain add nightly
+
+RUN rustup target add x86_64-unknown-linux-musl
+RUN rustup target add aarch64-unknown-linux-musl
+RUN rustup target add arm-unknown-linux-musleabi
+
+# --------------------------------------------------------------------------
+
+FROM xcc:base
+
+ARG TARGET=x86_64-linux-musl
+
+WORKDIR /work
+
+ENV PATH="/root/.cargo/bin:/opt/xcc/${TARGET}/bin:${PATH}"
+ENV PKG_CONFIG_PATH=/opt/xcc/${TARGET}/lib/pkgconfig
+
+ENV CC=${TARGET}-cc
+ENV CXX=${TARGET}-c++
+
+COPY --from=0 /opt/xcc      /opt/xcc
+COPY --from=0 /root/.cargo  /root/.cargo
+COPY --from=0 /root/.rustup /root/.rustup
+
+CMD bash
